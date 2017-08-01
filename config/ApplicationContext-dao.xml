@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context" xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:aop="http://www.springframework.org/schema/aop" xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+	http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.0.xsd
+	http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.0.xsd http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.0.xsd
+	http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.0.xsd">
+
+	<!-- 加载配置文件 -->
+	<context:property-placeholder location="classpath:db.properties" />
+	<!-- 数据库连接池 -->
+	<bean id="dataSource" class="com.alibaba.druid.pool.DruidDataSource"
+		destroy-method="close">
+		<property name="driverClassName" value="com.mysql.jdbc.Driver" />
+		<property name="url" value="jdbc:mysql://localhost:3306/scm?characterEncoding=utf-8" />
+		<property name="username" value="root" />
+		<property name="password" value="19910420" />
+		<property name="maxActive" value="10" />
+		<property name="maxIdle" value="5" />
+	</bean>
+	
+	<!-- mapper配置 -->
+	<!-- 让spring管理sqlsessionfactory 使用mybatis和spring整合包中的 -->
+	<bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<!-- 数据库连接池 -->
+		<property name="dataSource" ref="dataSource" />
+		<!-- 加载mybatis的全局配置文件 -->
+		<property name="configLocation" value="classpath:SqlMapConfig.xml" />
+		<!--配置扫描式加载SQL映射文件,记得去掉mybatis-config配置-->
+		<property name="mapperLocations" value="classpath:cn/itcast/scm/dao/*.xml"/>
+	</bean>
+	
+	<!-- 配置Mapper扫描器 
+	<bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+		<property name="basePackage" value="cn.itcast.scm.entity"/>
+	</bean>-->
+	
+	<!-- 配置SessionTemplate，已封装了繁琐的数据操作-->
+	<bean id="sqlSessionTemplate" class="org.mybatis.spring.SqlSessionTemplate">
+		<constructor-arg name="sqlSessionFactory" ref="sqlSessionFactory"/>		
+	</bean>
+	
+	<!-- 开启扫描类中的注解 		 
+	<context:component-scan base-package="cn.itcast.scm.*.*"/>-->
+	
+	<!-- 配置 转换器，对于在basePackage设置的包（包括子包）下的接口类，
+	如果接口类的全类名在Mapper.xml文件中和定义过命名空间一致，
+	 将被转换成spring的BEAN，在调用 的地方通过@Autowired方式将可以注入接口实例 -->
+ 	<bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+		<property name="sqlSessionFactory" ref="sqlSessionFactory" />
+		<property name="basePackage" value="cn.itcast.scm.dao" />
+	</bean> 
+	<!-- 在spring里使用org.mybatis.spring.mapper.MapperScannerConfigurer 进行自动扫描的时候，
+	设置了sqlSessionFactory 的话，可能会导致PropertyPlaceholderConfigurer失效，
+	也就是用${jdbc.username}这样之类的表达式，将无法获取到properties文件里的内容。 
+	导致这一原因是因为，MapperScannerConigurer实际是在解析加载bean定义阶段的，
+	这个时候要是设置sqlSessionFactory的话，会导致提前初始化一些类，这个时候，
+	PropertyPlaceholderConfigurer还没来得及替换定义中的变量，导致把表达式当作字符串复制了。
+	 但如果不设置sqlSessionFactory 属性的话，就必须要保证sessionFactory在spring中名称一定要是sqlSessionFactory ，
+	 否则就无法自动注入。又或者直接定义 MapperFactoryBean ，再或者放弃自动代理接口方式。  -->
+</beans>
